@@ -2,13 +2,25 @@ import numpy as np
 import cmath
 from numpy.typing import NDArray
 
+material_dict = {
+    1: (False, 1.6, ''),
+    2: (False, 2.2, ''),
+    3: (True, 0, 'disp_data/Ag.txt')
+}
+
 class Material:
     """
     Abstraction class to make handling material properties more intuitive.
     """
-    def __init__(self, dispersive: bool, refr_ind: float|complex|NDArray):
+    def __init__(self, dispersive: bool, refr_ind: float|complex|None = None, disp_path: str = None):
         self.dispersive = dispersive
-        self.refr_ind = refr_ind
+        if self.dispersive:
+            self.disp_path = disp_path
+            self.dispersion_ini()
+        else:
+            self.refr_ind: float|complex|NDArray = refr_ind
+        if dispersive:
+            self.dispersion_ini()
 
     def get_refr_ind(self, wavelength: float):
         """
@@ -32,8 +44,16 @@ class Material:
             wavelength2 = self.refr_ind[0][index2]
             refr_ind1 = self.refr_ind[1][index1]
             refr_ind2 = self.refr_ind[1][index2]
+            k1 = self.refr_ind[2][index1]
+            k2 = self.refr_ind[2][index2]
 
-            return (refr_ind2 - refr_ind1) / (wavelength2 - wavelength1) * (wavelength - wavelength1) + refr_ind1
+            n = (refr_ind2 - refr_ind1) / (wavelength2 - wavelength1) * (wavelength - wavelength1) + refr_ind1
+            k = (k2 - k1) / (wavelength2 - wavelength1) * (wavelength - wavelength1) + k1
+
+            return complex(n, k)
+
+    def dispersion_ini(self):
+        self.refr_ind: float|complex|NDArray = np.loadtxt(self.disp_path, skiprows=1, delimiter='\t').T
 
 class Slab:
     """
@@ -76,13 +96,25 @@ class InterMatrix:
 
 class Stack:
     """
-    Abstraction class to make handling layer stack properties more intuitive.
+    Abstraction class to make handling layer stack properties more intuitive. The first entry in the slab stack is the
+    slab closest to the substrate.
     """
-    def __init__(self, medium: Material, substrate: Material, stack_file: str):
+    def __init__(self, medium: Material, substrate: Material, stack_file: str, target_wavelength: float = 700):
         self.medium = medium
         self.substrate = substrate
         self.stack_file = stack_file
+        self.slab_stack = []
+        self.target_wavelength = target_wavelength
         self.make_stack()
 
     def make_stack(self):
+        material_array = np.loadtxt(self.stack_file, skiprows=1, delimiter='\t')
+        for entry in material_array:
+            dispersive = material_dict[int(entry[0])][0]
+            if not dispersive:
+                material = Material(dispersive=dispersive, refr_ind=material_dict[int(entry[0])][1])
+            else:
+                material = Material(dispersive=dispersive, disp_path=material_dict[int(entry[0])][2])
+            abs_thickness = entry[1] * self.target_wavelength / (4 * material.get_refr_ind(self.target_wavelength.real))
+            self.slab_stack.append(Slab(material, abs_thickness))
         return
