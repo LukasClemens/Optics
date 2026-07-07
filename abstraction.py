@@ -3,9 +3,12 @@ import cmath
 from numpy.typing import NDArray
 
 material_dict = {
+    0: (False, 1, ''),
     1: (False, 1.6, ''),
     2: (False, 2.2, ''),
-    3: (True, 0, 'disp_data/Ag.txt')
+    3: (True, 0, 'disp_data/Ag.txt'),
+    4: (False, 1.45, ''),
+    5: (True, 0, 'disp_data/test.txt')
 }
 
 class Material:
@@ -19,8 +22,6 @@ class Material:
             self.dispersion_ini()
         else:
             self.refr_ind: float|complex|NDArray = refr_ind
-        if dispersive:
-            self.dispersion_ini()
 
     def get_refr_ind(self, wavelength: float):
         """
@@ -115,6 +116,6 @@ class Stack:
                 material = Material(dispersive=dispersive, refr_ind=material_dict[int(entry[0])][1])
             else:
                 material = Material(dispersive=dispersive, disp_path=material_dict[int(entry[0])][2])
-            abs_thickness = entry[1] * self.target_wavelength / (4 * material.get_refr_ind(self.target_wavelength.real))
+            abs_thickness = entry[1] * self.target_wavelength / (4 * material.get_refr_ind(self.target_wavelength).real)
             self.slab_stack.append(Slab(material, abs_thickness))
         return
