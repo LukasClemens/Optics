@@ -104,7 +104,7 @@ class Stack:
         self.medium = medium
         self.substrate = substrate
         self.stack_file = stack_file
-        self.slab_stack = []
+        self.slab_stack: list[Slab] = []
         self.target_wavelength = target_wavelength
         self.make_stack()
 
@@ -119,3 +119,26 @@ class Stack:
             abs_thickness = entry[1] * self.target_wavelength / (4 * material.get_refr_ind(self.target_wavelength).real)
             self.slab_stack.append(Slab(material, abs_thickness))
         return
+
+    def material(self, index):
+        return self.slab_stack[index].material
+
+    def thickness(self, index):
+        return self.slab_stack[index].thickness
+
+class StackMatrix:
+    def __init__(self, stack: Stack, wavelength):
+        self.stack = stack
+        self.wavelength = wavelength
+        self.matrix = np.array([[1, 0], [0, 1]])
+        self.make_matrix()
+
+    def make_matrix(self):
+        self.matrix = InterMatrix(self.stack.material(0), self.stack.substrate, self.wavelength).matrix
+        for i in range(len(self.stack.slab_stack) - 1):
+            prop_mat = PropMatrix(self.stack.thickness(i), self.wavelength, self.stack.material(i)).matrix
+            inter_mat = InterMatrix(self.stack.material(i + 1), self.stack.material(i), self.wavelength).matrix
+            self.matrix = self.matrix @ prop_mat @ inter_mat
+        prop_mat = PropMatrix(self.stack.thickness(-1), self.wavelength, self.stack.material(-1)).matrix
+        inter_mat = InterMatrix(self.stack.medium, self.stack.material(-1), self.wavelength).matrix
+        self.matrix = self.matrix @ prop_mat @ inter_mat
