@@ -1,5 +1,5 @@
 import unittest
-from abstraction import Stack, Material, material_dict, StackMatrix, PropMatrix, InterMatrix
+from abstraction import Stack, Material, material_dict, PropMatrix, InterMatrix
 import numpy as np
 
 
@@ -7,7 +7,10 @@ class AbstractionTest(unittest.TestCase):
     def test_init_non_dispersive(self):
         medium = Material(*material_dict[0])
         substrate = Material(*material_dict[4])
-        stack = Stack(medium=medium, substrate=substrate, stack_file='designs/test_no_dispersion.txt')
+        stack = Stack(medium=medium,
+                      substrate=substrate,
+                      stack_file='designs/test_no_dispersion.txt',
+                      target_wavelength=700)
         self.assertEqual(len(stack.slab_stack), 4)
         self.assertEqual(stack.slab_stack[1].material.refr_ind, 1.6)
         self.assertTrue(stack.slab_stack[1].thickness)
@@ -42,15 +45,16 @@ class AbstractionTest(unittest.TestCase):
         for element in list(zip(matrix.flatten(), solution_matrix.flatten())):
             self.assertAlmostEqual(element[0], element[1], places=4)
 
-    def test_stack_matrix(self):
+    def test_stack(self):
         medium = Material(*material_dict[0])
         substrate = Material(*material_dict[4])
-        stack = Stack(medium=medium, substrate=substrate, stack_file='designs/test_no_dispersion.txt')
-        stack_matrix = StackMatrix(stack, 700)
-        matrix = stack_matrix.matrix
-        flat_matrix = matrix.flatten()
+        stack = Stack(medium=medium,
+                      substrate=substrate,
+                      stack_file='designs/test_no_dispersion.txt',
+                      target_wavelength=700)
+        matrix = stack.make_matrix(700)
         solution = np.array([1.41470, 1.14530, 1.14530, 1.41470])
-        for element in list(zip(flat_matrix, solution)):
+        for element in list(zip(matrix.flatten(), solution)):
             self.assertAlmostEqual(element[0], element[1], places=4)
 
 

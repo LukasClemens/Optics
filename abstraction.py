@@ -100,7 +100,7 @@ class Stack:
     Abstraction class to make handling layer stack properties more intuitive. The first entry in the slab stack is the
     slab closest to the substrate.
     """
-    def __init__(self, medium: Material, substrate: Material, stack_file: str, target_wavelength: float = 700):
+    def __init__(self, medium: Material, substrate: Material, stack_file: str, target_wavelength: float):
         self.medium = medium
         self.substrate = substrate
         self.stack_file = stack_file
@@ -120,25 +120,19 @@ class Stack:
             self.slab_stack.append(Slab(material, abs_thickness))
         return
 
+    def make_matrix(self, wavelength):
+        matrix = InterMatrix(self.material(0), self.substrate, wavelength).matrix
+        for i in range(len(self.slab_stack) - 1):
+            prop_mat = PropMatrix(self.thickness(i), wavelength, self.material(i)).matrix
+            inter_mat = InterMatrix(self.material(i + 1), self.material(i), wavelength).matrix
+            matrix = matrix @ prop_mat @ inter_mat
+        prop_mat = PropMatrix(self.thickness(-1), wavelength, self.material(-1)).matrix
+        inter_mat = InterMatrix(self.medium, self.material(-1), wavelength).matrix
+        matrix = matrix @ prop_mat @ inter_mat
+        return matrix
+
     def material(self, index):
         return self.slab_stack[index].material
 
     def thickness(self, index):
         return self.slab_stack[index].thickness
-
-class StackMatrix:
-    def __init__(self, stack: Stack, wavelength):
-        self.stack = stack
-        self.wavelength = wavelength
-        self.matrix = np.array([[1, 0], [0, 1]])
-        self.make_matrix()
-
-    def make_matrix(self):
-        self.matrix = InterMatrix(self.stack.material(0), self.stack.substrate, self.wavelength).matrix
-        for i in range(len(self.stack.slab_stack) - 1):
-            prop_mat = PropMatrix(self.stack.thickness(i), self.wavelength, self.stack.material(i)).matrix
-            inter_mat = InterMatrix(self.stack.material(i + 1), self.stack.material(i), self.wavelength).matrix
-            self.matrix = self.matrix @ prop_mat @ inter_mat
-        prop_mat = PropMatrix(self.stack.thickness(-1), self.wavelength, self.stack.material(-1)).matrix
-        inter_mat = InterMatrix(self.stack.medium, self.stack.material(-1), self.wavelength).matrix
-        self.matrix = self.matrix @ prop_mat @ inter_mat
