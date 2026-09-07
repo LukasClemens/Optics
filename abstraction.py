@@ -131,6 +131,16 @@ class Stack:
         matrix = matrix @ prop_mat @ inter_mat
         return matrix
 
+    def make_matrix_list(self, wavelength):
+        matrix_list = [InterMatrix(self.material(0), self.substrate, wavelength).matrix]
+        for i in range(len(self.slab_stack) - 1):
+            matrix_list.append(PropMatrix(self.thickness(i), wavelength, self.material(i)).matrix)
+            matrix_list.append(InterMatrix(self.material(i + 1), self.material(i), wavelength).matrix)
+        matrix_list.append(PropMatrix(self.thickness(-1), wavelength, self.material(-1)).matrix)
+        matrix_list.append(InterMatrix(self.medium, self.material(-1), wavelength).matrix)
+        matrix_list.reverse()
+        return matrix_list
+
     def material(self, index):
         return self.slab_stack[index].material
 

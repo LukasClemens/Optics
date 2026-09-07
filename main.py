@@ -1,6 +1,6 @@
 import numpy as np
 
-from calc import Spectra
+from calc import Calc
 from abstraction import Stack, material_dict, Material
 
 if __name__ == '__main__':
@@ -10,8 +10,8 @@ if __name__ == '__main__':
                   substrate=substrate,
                   stack_file='designs/bragg_20.txt',
                   target_wavelength=700)
-    spectra = Spectra(stack=stack, start=400, stop=1000, step=1)
-    wavelengths, transmission, reflectance = spectra.make_array()
-    np.savetxt(fname='results/bragg_20.txt',
-               X=np.vstack((wavelengths, transmission, reflectance)).T,
-               header=f'lambda\tT\tR')
+    calc = Calc(stack=stack)
+    position, field = calc.make_efield_array(1, 700)
+    np.savetxt(fname='results/field_bragg_20.txt',
+               X=np.vstack((position, field)).T,
+               header=f'z\tE')
