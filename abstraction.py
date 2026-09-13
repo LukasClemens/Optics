@@ -8,7 +8,9 @@ material_dict = {
     2: (False, 2.2, ''),
     3: (True, 0, 'disp_data/Ag.txt'),
     4: (False, 1.45, ''),
-    5: (True, 0, 'disp_data/test.txt')
+    5: (True, 0, 'disp_data/test.txt'),
+    6: (False, 1.549, ''),
+    7: (False, 2.4, '')
 }
 
 class Material:
@@ -51,7 +53,7 @@ class Material:
             n = (refr_ind2 - refr_ind1) / (wavelength2 - wavelength1) * (wavelength - wavelength1) + refr_ind1
             k = (k2 - k1) / (wavelength2 - wavelength1) * (wavelength - wavelength1) + k1
 
-            return complex(n, k)
+            return complex(n, -k)
 
     def dispersion_ini(self):
         self.refr_ind: float|complex|NDArray = np.loadtxt(self.disp_path, skiprows=1, delimiter='\t').T
@@ -107,9 +109,10 @@ class Stack:
         self.slab_stack: list[Slab] = []
         self.target_wavelength = target_wavelength
         self.make_stack()
+        self.dispersive = any([slab.material.dispersive for slab in self.slab_stack])
 
     def make_stack(self):
-        material_array = np.loadtxt(self.stack_file, skiprows=1, delimiter='\t')
+        material_array = np.loadtxt(self.stack_file, skiprows=1, delimiter='\t', ndmin=2)
         for entry in material_array:
             dispersive = material_dict[int(entry[0])][0]
             if not dispersive:
